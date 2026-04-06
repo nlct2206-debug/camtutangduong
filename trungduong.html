@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nguyễn Trùng Dương - 06/04</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee+Inline&family=Playfair+Display:ital,wght@0,700;1,700&family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- CÀI ĐẶT CHUNG --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Montserrat', sans-serif; background: #fdf2f2; overflow-x: hidden; }
+
+        /* --- MÀN HÌNH CHỜ (HIỆU ỨNG INTRO) --- */
+        #intro-scene {
+            position: fixed; width: 100vw; height: 100vh;
+            background: #fdf2f2; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.8s ease-in-out;
+            perspective: 1000px;
+        }
+
+        .stage { position: relative; width: 400px; height: 500px; display: flex; justify-content: center; align-items: center; }
+
+        /* --- MÁY BAY BASIC BAY LƯỢN 2 VÒNG --- */
+        #plane {
+            position: absolute; width: 50px; z-index: 50; fill: #b71c1c;
+            offset-path: path('M -600 -100 Q -300 -100 -150 -150 A 60 60 0 1 1 -150.1 -150 A 60 60 0 1 1 -150.2 -150 C -150 -50, -50 -150, 0 -112');
+            offset-rotate: auto 0deg;
+            animation: flyLoopLand 4s cubic-bezier(0.3, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes flyLoopLand {
+            0% { offset-distance: 0%; opacity: 0; }
+            5% { opacity: 1; }
+            100% { offset-distance: 100%; opacity: 1; } 
+        }
+
+        /* --- BONG BÓNG CHỮ --- */
+        #hint-bubble {
+            position: absolute; background: white; border: 2px solid #b71c1c;
+            color: #b71c1c; padding: 8px 15px; border-radius: 20px;
+            font-weight: bold; font-size: 14px; z-index: 60;
+            opacity: 0; pointer-events: none;
+            animation: popUp 0.5s forwards 4s; 
+        }
+        #hint-bubble::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            border-width: 8px 8px 0; border-style: solid; border-color: #b71c1c transparent transparent transparent;
+        }
+        @keyframes popUp { to { opacity: 1; transform: translate(0, -170px); } }
+
+        /* --- HÒM THƯ NHẬT BẢN --- */
+        #mailbox {
+            width: 140px; height: 180px; background: #b71c1c;
+            border-radius: 12px 12px 6px 6px; position: relative;
+            cursor: pointer; box-shadow: 0 15px 30px rgba(183, 28, 28, 0.3);
+            transition: transform 0.2s; z-index: 10;
+        }
+        #mailbox:hover { transform: scale(1.05); }
+
+        #mailbox::before {
+            content: ''; position: absolute; top: 15px; left: 10%; width: 80%; height: 35px;
+            background: #e0e0e0; border-radius: 4px;
+            border-top: 15px solid #b71c1c; box-shadow: inset 0 10px 0 rgba(0,0,0,0.5);
+        }
+        
+        .jp-post { position: absolute; top: 75px; width: 100%; text-align: center; color: white; }
+        .jp-post .symbol { font-size: 38px; font-weight: bold; line-height: 1; }
+        .jp-post .text { font-size: 15px; font-weight: bold; letter-spacing: 1px; }
+
+        .mailbox-base {
+            position: absolute; bottom: -25px; left: 40px; width: 60px; height: 25px;
+            background: #444; border-radius: 0 0 6px 6px;
+        }
+
+        /* --- PHONG THƯ ĐỎ ĐÔ --- */
+        #envelope-wrapper {
+            display: none; position: relative; width: 280px; height: 190px;
+            cursor: pointer; z-index: 20; filter: drop-shadow(0px 15px 25px rgba(0,0,0,0.4));
+        }
+        
+        .env-back { position: absolute; inset: 0; background: #6a0b0e; border-radius: 10px; z-index: 1; }
+        
+        .letter {
+            position: absolute; top: 15px; left: 15px; right: 15px; height: 150px;
+            background: #fff; z-index: 2; padding: 20px; text-align: center;
+            border-radius: 6px; box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            opacity: 0; visibility: hidden; 
+            transition: transform 0.8s ease, opacity 0.4s ease;
+        }
+
+        .env-left { position: absolute; bottom: 0; left: 0; width: 0; height: 0; border-top: 95px solid transparent; border-bottom: 95px solid transparent; border-left: 140px solid #7a0e12; z-index: 3; border-radius: 10px 0 0 10px;}
+        .env-right { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-top: 95px solid transparent; border-bottom: 95px solid transparent; border-right: 140px solid #7a0e12; z-index: 3; border-radius: 0 10px 10px 0;}
+        .env-bottom { position: absolute; bottom: 0; left: 0; width: 0; height: 0; border-left: 140px solid transparent; border-right: 140px solid transparent; border-bottom: 110px solid #8b151a; z-index: 4; border-radius: 0 0 10px 10px;}
+        
+        .env-flap {
+            position: absolute; top: 0; left: 0; width: 0; height: 0;
+            border-left: 140px solid transparent; border-right: 140px solid transparent;
+            border-top: 100px solid #9c1519; 
+            transform-origin: top; z-index: 5; transition: transform 0.6s ease;
+            border-radius: 10px 10px 0 0;
+        }
+
+        /* MỞ THƯ */
+        .is-open .env-flap { transform: rotateX(180deg); z-index: 1; }
+        .is-open .letter { transform: translateY(-100px); z-index: 6; opacity: 1; visibility: visible; }
+        .zoom-into-web { transform: scale(15); opacity: 0; pointer-events: none; transition: all 1s ease-in; }
+
+        /* --- TRANG WEB CHÍNH --- */
+        #main-site { display: none; width: 100vw; height: 100vh; display: flex; }
+
+        /* Cột Trái */
+        .sidebar { width: 30%; background: #b71c1c; padding: 40px 0; display: flex; flex-direction: column; align-items: center; border-right: 5px solid #8e0000; overflow-y: auto;}
+        .sidebar h2 { font-family: 'Playfair Display', serif; color: white; font-size: 2.8rem; text-align: center; line-height: 1.2; margin-bottom: 40px; }
+
+        /* Khung ảnh Polaroid */
+        .polaroid-container { position: relative; width: 100%; height: 500px; display: flex; justify-content: center; }
+        .polaroid { position: absolute; background: #fff; padding: 10px 10px 30px 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); width: 220px; transition: transform 0.3s; }
+        .polaroid img { width: 100%; height: 200px; object-fit: cover; background: #ddd; }
+        .p1 { transform: rotate(-8deg); top: 0; z-index: 2; }
+        .p2 { transform: rotate(10deg); top: 180px; z-index: 1; }
+        .polaroid:hover { transform: scale(1.05); z-index: 10; }
+        .tape { position: absolute; width: 80px; height: 25px; background: rgba(235, 189, 133, 0.9); top: -10px; left: 50%; transform: translateX(-50%) rotate(-3deg); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        /* Cột Phải */
+        .content { width: 70%; background: #fdf2f2; padding: 50px 60px; overflow-y: auto; }
+        .content h1 { font-family: 'Bungee Inline', cursive; font-size: 4rem; color: #b71c1c; letter-spacing: 2px; margin-bottom: 30px; }
+        .message-box { font-size: 1.2rem; line-height: 1.8; color: #444; background: white; padding: 30px; border-radius: 12px; border-left: 8px solid #b71c1c; margin-bottom: 40px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+        /* --- CSS CHO THẺ NHẠC (CUỘN NGANG / CAROUSEL) --- */
+        .music-title { font-size: 1.5rem; font-weight: 900; color: #b71c1c; margin-bottom: 15px; margin-top: 30px; border-bottom: 2px dashed #ffcdd2; padding-bottom: 10px;}
+        
+        .music-grid { 
+            display: flex; /* Đổi thành Flexbox để các phần tử nằm trên 1 hàng */
+            flex-wrap: nowrap; /* Không cho rớt dòng */
+            overflow-x: auto; /* Cho phép cuộn ngang */
+            gap: 15px; 
+            padding-bottom: 15px; /* Tạo khoảng trống cho thanh cuộn */
+            scroll-behavior: smooth; /* Cuộn mượt */
+            -webkit-overflow-scrolling: touch; /* Hỗ trợ cuộn mượt trên điện thoại */
+        }
+
+        /* Tùy chỉnh thanh cuộn ngang (Scrollbar) cho đẹp mắt */
+        .music-grid::-webkit-scrollbar { height: 8px; }
+        .music-grid::-webkit-scrollbar-track { background: #ffebee; border-radius: 10px; }
+        .music-grid::-webkit-scrollbar-thumb { background: #b71c1c; border-radius: 10px; }
+        .music-grid::-webkit-scrollbar-thumb:hover { background: #d32f2f; }
+
+        .music-card-rect { 
+            flex: 0 0 200px; /* Cố định chiều rộng của mỗi thẻ nhạc là 200px, không bị bóp méo */
+            display: flex; flex-direction: column; align-items: center; background: white; border: 2px solid #ffcdd2; 
+            border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; 
+            transition: all 0.3s ease; box-shadow: 0 4px 10px rgba(183, 28, 28, 0.05);
+            cursor: pointer; position: relative; z-index: 10;
+        }
+        .music-card-rect:hover { 
+            transform: translateY(-4px); border-color: #b71c1c; 
+            box-shadow: 0 8px 20px rgba(183, 28, 28, 0.15); 
+        }
+
+        /* Vùng ảnh bài hát */
+        .music-thumb {
+            width: 100%; height: 140px; position: relative; overflow: hidden;
+        }
+        .music-thumb img {
+            width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;
+        }
+        .music-card-rect:hover .music-thumb img { transform: scale(1.1); }
+        
+        /* Nút Play đè lên ảnh khi hover */
+        .play-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(183, 28, 28, 0.5); display: flex; justify-content: center; align-items: center;
+            opacity: 0; transition: 0.3s;
+        }
+        .music-card-rect:hover .play-overlay { opacity: 1; }
+        .play-icon { font-size: 40px; color: white; }
+
+        /* Vùng thông tin chữ */
+        .music-info {
+            padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between;
+            flex-grow: 1; overflow: hidden; width: 100%; text-align: center;
+        }
+        .song-name { 
+            font-weight: bold; font-size: 1rem; color: #b71c1c; margin-bottom: 5px; line-height: 1.3;
+            /* Cắt chữ nếu tên bài hát quá dài */
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;
+        }
+        .artist-name { font-size: 0.8rem; color: #666; }
+
+        /* --- HIỆU ỨNG RƠI TỪ TRÊN XUỐNG --- */
+        .bg-effects { position: fixed; inset: 0; pointer-events: none; z-index: 100; overflow: hidden; display: none; }
+        .effect-item { position: absolute; top: -50px; }
+        .confetti { width: 10px; height: 10px; border-radius: 50%; animation: fallDown linear infinite; }
+        .petal { font-size: 22px; animation: fallAndSwirl linear infinite; }
+
+        @keyframes fallDown { to { transform: translateY(110vh) rotate(360deg); } }
+        @keyframes fallAndSwirl {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(40px, 55vh) rotate(180deg); }
+            100% { transform: translate(-20px, 110vh) rotate(360deg); }
+        }
+    </style>
+</head>
+<body onload="init()">
+
+    <div id="intro-scene">
+        <div class="stage">
+            <svg id="plane" viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+            <div id="hint-bubble">Lấy thư điii</div>
+            <div id="mailbox" onclick="openMailbox()">
+                <div class="jp-post">
+                    <div class="symbol">〒</div>
+                    <div class="text">POST</div>
+                </div>
+                <div class="mailbox-base"></div>
+            </div>
+            <div id="envelope-wrapper" onclick="enterWebsite()">
+                <div class="env-back"></div>
+                <div class="env-left"></div>
+                <div class="env-right"></div>
+                <div class="env-bottom"></div>
+                <div class="env-flap"></div>
+                <div class="letter">
+                    <h3 style="color: #b71c1c; font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 5px;">Hellooo Dương</h3>
+                    <p style="font-size: 13px; color: #666; font-weight: bold;">Click cái nữa để nhận quà nhe!</p>
+                    <div style="font-size: 35px; margin-top: 10px;">🎁</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-site" style="display: none;">
+        <div class="sidebar">
+            <h2>Nguyễn<br>Trùng Dương</h2>
+            <div class="polaroid-container">
+                <div class="polaroid p1">
+                    <div class="tape"></div>
+                    <img src="1.jpg" alt="Dương 1">
+                </div>
+                <div class="polaroid p2">
+                    <div class="tape"></div>
+                    <img src="2.jpg" alt="Dương 2">
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <h1>HAPPY BOY'S DAY</h1>
+            <div class="message-box">
+                <b>Gửi Dương,</b><br><br>
+                Chúc Dương ngày hôm nay và cả những ngày sau đều sẽ có thật nhiều niềm vui! <br><br>
+                Hy vọng Dương sẽ đỗ nguyện vọng 1 và đạt được nhiều thành tựu trong cuộc sống, trong học tập sẽ luôn suôn sẻ và thuận lợi nhaaa!!!
+            </div>
+
+            <div class="music-title">Tui tặng Dương list nhạc</div>
+            
+            <div class="music-grid">
+                
+                <a href="https://www.youtube.com/watch?v=dS_HLHozs1E&list=RDdS_HLHozs1E&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/dS_HLHozs1E/mqdefault.jpg" alt="eternal sunshine">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">eternal sunshine</div>
+                        <div class="artist-name">Ariana Grande</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=kPa7bsKwL-c&list=RDkPa7bsKwL-c&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/kPa7bsKwL-c/mqdefault.jpg" alt="Die With A Smile">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">Die With A Smile</div>
+                        <div class="artist-name">Lady Gaga, Bruno Mars</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=UdRAXWNvjzE&list=RDUdRAXWNvjzE&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/UdRAXWNvjzE/mqdefault.jpg" alt="we can't be friends">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">we can't be friends</div>
+                        <div class="artist-name">Ariana Grande</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=5UMCrq-bBCg&list=RD5UMCrq-bBCg&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/5UMCrq-bBCg/mqdefault.jpg" alt="I Bet You Think About Me">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">I Bet You Think About Me</div>
+                        <div class="artist-name">Taylor Swift</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=A8dH4cKGa6s&list=RDA8dH4cKGa6s&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/A8dH4cKGa6s/mqdefault.jpg" alt="Ordinary">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">Ordinary</div>
+                        <div class="artist-name">Alex Warren</div>
+                    </div>
+                </a>
+
+            </div>
+
+
+            <div class="music-title">Cũng là nhạc nhưng mà là tiếng Việt</div>
+            
+            <div class="music-grid">
+                
+                <a href="https://www.youtube.com/watch?v=K06tUOb35DU&list=RDK06tUOb35DU&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/K06tUOb35DU/mqdefault.jpg" alt="A little dream of me">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">A little dream of me</div>
+                        <div class="artist-name">Thảo Tâm, Công Dương</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=CKD0MxAn3TA&list=RDCKD0MxAn3TA&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/CKD0MxAn3TA/mqdefault.jpg" alt="Tell The Kids I Love Them">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">Tell The Kids I Love Them</div>
+                        <div class="artist-name">Obito</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=lMKfZwnHzig&list=RDlMKfZwnHzig&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/lMKfZwnHzig/mqdefault.jpg" alt="Đại Lộ Mặt Trời">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">Đại Lộ Mặt Trời</div>
+                        <div class="artist-name">Chillies</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=6Hv80f1-9UQ&list=RD6Hv80f1-9UQ&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/6Hv80f1-9UQ/mqdefault.jpg" alt="Cảm Ơn Người Đã Thức Cùng Tôi">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">Cảm Ơn Người Đã Thức Cùng Tôi</div>
+                        <div class="artist-name">Phùng Khánh Linh</div>
+                    </div>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=jPjQJYKhhk4&list=RDjPjQJYKhhk4&start_radio=1" target="_blank" onclick="window.open(this.href, '_blank'); return false;" class="music-card-rect">
+                    <div class="music-thumb">
+                        <img src="https://img.youtube.com/vi/jPjQJYKhhk4/mqdefault.jpg" alt="Phép Màu">
+                        <div class="play-overlay"><span class="play-icon">▶</span></div>
+                    </div>
+                    <div class="music-info">
+                        <div class="song-name">Phép Màu</div>
+                        <div class="artist-name">Mounter</div>
+                    </div>
+                </a>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="bg-effects" id="bg-effects"></div>
+
+    <script>
+        function init() {
+            document.getElementById('main-site').style.display = 'none';
+        }
+
+        function openMailbox() {
+            document.getElementById('plane').style.display = 'none';
+            document.getElementById('hint-bubble').style.display = 'none';
+            document.getElementById('mailbox').style.display = 'none';
+            
+            const env = document.getElementById('envelope-wrapper');
+            env.style.display = 'block';
+            
+            setTimeout(() => { env.classList.add('is-open'); }, 300);
+        }
+
+        function enterWebsite() {
+            const env = document.getElementById('envelope-wrapper');
+            if (!env.classList.contains('is-open')) return;
+
+            const intro = document.getElementById('intro-scene');
+            intro.classList.add('zoom-into-web'); 
+            
+            setTimeout(() => {
+                intro.style.display = 'none';
+                document.body.style.overflow = 'auto'; 
+                const site = document.getElementById('main-site');
+                site.style.display = 'flex'; 
+                startFallingEffects();
+            }, 800);
+        }
+
+        function startFallingEffects() {
+            const fxContainer = document.getElementById('bg-effects');
+            fxContainer.style.display = 'block';
+            
+            const colors = ['#b71c1c', '#ffcdd2', '#e57373', '#ff8a80', '#ffffff'];
+            
+            for(let i=0; i<60; i++) {
+                let conf = document.createElement('div');
+                conf.className = 'effect-item confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.background = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                conf.style.animationDelay = Math.random() * 5 + 's';
+                fxContainer.appendChild(conf);
+            }
+
+            for(let i=0; i<20; i++) {
+                let petal = document.createElement('div');
+                petal.className = 'effect-item petal';
+                petal.innerText = '🌸';
+                petal.style.left = Math.random() * 100 + 'vw';
+                petal.style.animationDuration = (Math.random() * 5 + 5) + 's';
+                petal.style.animationDelay = Math.random() * 5 + 's';
+                fxContainer.appendChild(petal);
+            }
+        }
+    </script>
+</body>
+</html>
